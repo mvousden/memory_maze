@@ -1,39 +1,9 @@
-require "math"
+require("math")
+boardLib = require("boardlib")
 
 function love.load()
-   -- Define boards:
-   --  - 0 denotes a hole
-   --  - 1 denotes a path
-   --  - 2 denotes a light-off
-   --  - 3 denotes a light-on
-   --  - 4 denotes the exit
-   boards = {
-      {
-         {0, 0, 0, 0, 0, 0, 0, 0, 0},
-         {0, 1, 1, 1, 0, 3, 1, 1, 0},
-         {0, 1, 3, 1, 0, 1, 0, 1, 0},
-         {0, 1, 1, 1, 1, 2, 0, 4, 0},
-         {0, 0, 0, 0, 0, 0, 0, 0, 0},
-      },
-      {
-         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-         {0, 0, 0, 0, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0},
-         {0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0},
-         {0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0},
-         {0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0},
-         {0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0},
-         {0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 4, 0},
-         {0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-         {0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0},
-         {0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0},
-         {0, 0, 1, 1, 2, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0},
-         {0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0},
-         {0, 1, 3, 1, 1, 2, 1, 0, 1, 0, 1, 1, 0, 1, 0},
-         {0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0},
-         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-      }
-   }
-
+   -- Define boards
+   boards = boardLib.defaultBoards
    boardIndex = 1
 
    -- Define board state
@@ -43,16 +13,6 @@ function love.load()
    boardFadeInEnd = 1
    boardFadeOutTime = 0
    boardFadeOutEnd = 1
-
-   -- Starting player positions per board and state
-   playerStarts = {
-      {3, 3},
-      {3, 13}
-   }
-
-   -- playerStartHoriz = 3  -- 1-based indexing
-   -- playerStartVerti = 3  -- 1-based indexing
-   -- playerPos = {playerStartHoriz, playerStartVerti}
 
    -- Starting player state
    playerFalling = false
@@ -198,7 +158,7 @@ function love.update(dt)
       if fallTime >= 1 then
          playerFalling = false
          fallTime = 0
-         playerPos = {unpack(playerStarts[boardIndex])}
+         playerPos = {unpack(boards[boardIndex]["start"])}
       end
    end
 
@@ -209,7 +169,7 @@ function love.update(dt)
       -- We're done with fading in.
       if boardFadeInTime >= boardFadeInEnd then
          boardIntroduced = true
-         playerPos = {unpack(playerStarts[boardIndex])}
+         playerPos = {unpack(boards[boardIndex]["start"])}
       end
    end
 
@@ -227,7 +187,7 @@ function love.update(dt)
          if boardIndex > #boards then
             boardIndex = 1
          end
-         playerPos = {unpack(playerStarts[boardIndex])}
+         playerPos = {unpack(boards[boardIndex]["start"])}
       end
    end
 end
