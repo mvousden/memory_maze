@@ -49,11 +49,8 @@ defaultBoards = {
    }
 }
 
-function generate_board(size, complexityMax)
-   -- Returns a square board of a given size that requires no more than
-   -- complexityMax moves to solve.
-
-   -- Generate an empty board.
+function generate_empty_board(size)
+   -- Returns a board populated with only holes.
    board = {}
    for vertiIndex = 1, size do
       board[vertiIndex] = {}
@@ -61,6 +58,15 @@ function generate_board(size, complexityMax)
          board[vertiIndex][horizIndex] = 0
       end
    end
+   return board
+end
+
+function generate_board(size, complexityMax)
+   -- Returns a square board of a given size that requires no more than
+   -- complexityMax moves to solve.
+
+   -- Generate an empty board.
+   board = generate_empty_board(size)
 
    -- Categorise each void that can potentially hold a path square.
    candidateTiles = {}
@@ -240,7 +246,8 @@ function nonzero_duplicate_in_table(tableToTest)
 end
 
 -- Add more boards of increasing difficulty
-for boardID = #defaultBoards + 1, 100 do
+--for boardID = #defaultBoards + 1, 100 do
+for boardID = 1, 100 do
    defaultBoards[boardID] = generate_board(10 + boardID, 10 + boardID * 1.5)
 end
 
