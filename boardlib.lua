@@ -21,17 +21,31 @@ function Board:create(size)
 
    board.size = size
    board.clear_map()
+   return board
 end
 
 function Board:clear_map()
    -- Clears the board so that its map comprises only of holes. Also clears any
    -- paths for this board.
+   --
+   -- Pathing information is stored both as a Cartesian map (to allow us to
+   -- determine which paths are neighbouring), and as a list by IDs. Each value
+   -- in self.paths_map matches an index in self.paths.
+   --
+   -- When a path is created, the seed tile position is added into the
+   -- self.paths table, where paths are indexed by sequential integers. When a
+   -- tile is added to a path, it is added to that same sub-table, and the path
+   -- index is written in self.paths_map.
    self.paths = {}
+   self.paths_map = {}
+
    self.map = {}
    for vertiIndex = 1, size do
       self.map[vertiIndex] = {}
+      self.paths_map[vertiIndex] = {}
       for horizIndex = 1, size do
          self.map[vertiIndex][horizIndex] = 0
+         self.paths_map[vertiIndex][horizIndex] = 0
       end
    end
 end
@@ -61,10 +75,34 @@ function Board:get_neighbours_of_point(horizIndex, vertiIndex)
            self.get_point(horizIndex - 1, vertiIndex - 1)}
 end
 
+function Board:get_neighbouring_paths_of_point(horizIndex, vertiIndex)
+   -- Given a horizontal and a vertical position, returns the indeces of the
+   -- paths of the map to its north, south, east, and west, in sequence.
+   --
+   -- If the square has no neighbour point in a given direction (i.e. it is on
+   -- an edge of the domain), nil is returned for that direction.
+   return {self.get_path_at_point(horizIndex, vertiIndex - 1),
+           self.get_path_at_point(horizIndex, vertiIndex + 1),
+           self.get_path_at_point(horizIndex + 1, vertiIndex),
+           self.get_path_at_point(horizIndex - 1, vertiIndex - 1)}
+end
+
+function Board:get_path_at_point(horizIndex, vertiIndex)
+   -- Given a horizontal and a vertical position, returns the path index at
+   -- that co-ordinate, or nil if there is no path there.
+   return self.paths_map[vertiIndex][horizIndex]
+end
+
 function Board:get_point(horizIndex, vertiIndex)
    -- Given a horizontal and a vertical position, returns the square of the map
    -- at that co-ordinate (see enum-comment at the top of this file).
    return self.map[vertiIndex][horizIndex]
+end
+
+function Board:set_path_at_point(horizIndex, vertiIndex, pathIndex)
+   -- Given a horizontal and a vertical position, sets the path index at
+   -- that co-ordinate,
+   self.paths_map[vertiIndex][horizIndex] = pathIndex
 end
 
 function Board:set_point(horizIndex, vertiIndex, value)
@@ -101,14 +139,6 @@ function Board:populate_paths(complexityMaximum)
       end
    end
 
-   -- Create an object to store information about paths.
-   --
-   -- When a path is created, the seed tile position is added into this paths
-   -- table, where paths are indexed by sequential integers. When a tile is
-   -- added to a path, it is added to that same sub-table, and the path index
-   -- is written on the board.
-   paths = {}
-
    -- Keep choosing candidate voids at random, until there are no more
    -- candidate voids.
    while #candidateTiles > 0 do
@@ -117,47 +147,48 @@ function Board:populate_paths(complexityMaximum)
 
       -- Move on if there is more than one tile surrounding this one from the
       -- same path.
-
-      -- <!> Oh no, the map mechanism is broken while this method is being
-      -- used, because we set the value of the points equal to the index of the
-      -- path they refer to! The solution to this may be, at each point, to
-      -- store a value for the enum, and a value dictating what path it belongs
-      -- to, if any. We then need a methods to access the map by its "enum
-      -- values", and to access the map by its "path values".
-      if not nonzero_duplicate_in_table(neighbourStatus) then
+      neighbourPaths = board.get_neighbouring_paths_of_point(candidatePos[1],
+                                                             candidatePos[2])
+      if not nonzero_duplicate_in_table(neighbourPaths) then
 
          -- Determine the paths that this tile would join.
-         neighbourPaths = {}
-         for _, value in ipairs(neighbourStatus) do
-            if value > 0 then
-               neighbourPaths[#neighbourPaths + 1] = value
+         pathsThatWouldBeJoined = {}
+         for _, value in ipairs(neighbourPaths) do
+            if value and value > 0 then  -- Filtering nil results.
+               pathsThatWouldBeJoined[#pathsThatWouldBeJoined + 1] = value
             end
          end
 
-         -- Check complexity requirement.
+         -- Compute the complexity of adding a tile here as the sum of the
+         -- lengths of the paths it would combine.
          resultingComplexity = 0
-         for _, pathIndex in ipairs(neighbourPaths) do
+         for _, pathIndex in ipairs(pathsThatWouldBeJoined) do
             resultingComplexity = resultingComplexity + #paths[pathIndex]
          end
 
+         -- Only add the tile if it doesn't increase the maximum complexity
+         -- beyond the specified maximum.
          if resultingComplexity <= complexityMax then
 
-            newPathIndex = #paths + 1
             -- Create a new path with this tile as a seed.
+            newPathIndex = #paths + 1
             paths[newPathIndex] = {{candidatePos[1], candidatePos[2]}}
-            board[candidatePos[2]][candidatePos[1]] = newPathIndex
+            self.set_path_at_point(candidatePos[1], candidatePos[2],
+                                   newPathIndex)
+            self.set_point(candidatePos[1], candidatePos[2], 1)
 
             -- Join all the paths neighbouring this one together into a new
             -- path, and change all of their cells in the board to this new
-            -- path ID. Note that we don't remove the old paths from the paths
-            -- table; this is to maintain its sequential indexing.
-            for _, pathIndex in ipairs(neighbourPaths) do
-               for _, tilePosition in ipairs(paths[pathIndex]) do
-                  board[tilePosition[2]][tilePosition[1]] = newPathIndex
-                  paths[newPathIndex][#paths[newPathIndex] + 1] = {tilePosition[1], tilePosition[2]}
+            -- path ID. Empty the old path, so it won't be selected later when
+            -- we're looking for the most complex path, and to maintain the
+            -- atomic sequencing of the paths table.
+            for _, oldPathIndex in ipairs(pathsThatWouldBeJoined) do
+               for _, tilePosition in ipairs(self.paths[oldPathIndex]) do
+                  self.set_path_at_point(tilePosition[1], tilePosition[2],
+                                         newPathIndex)
+                  self.paths[newPathIndex][#paths[newPathIndex] + 1] = {tilePosition[1], tilePosition[2]}
                end
-               -- Clear the old path, so it won't be selected later.
-               paths[pathIndex] = {}
+               paths[oldPathIndex] = {}
             end
          end
       end
@@ -168,8 +199,6 @@ function Board:populate_paths(complexityMaximum)
                                             candidateTiles[#candidateTiles][2]}
       candidateTiles[#candidateTiles] = nil
    end
-
-
 end
 
 -- Helper for creating a board with specific properties.
@@ -182,18 +211,6 @@ function generate_board(size, complexityMaximum)
 
    -- Populate the board with paths.
    board.populate_paths(complexityMaximum)
-
-   -- <!>
-
-   -- For all squares on the board, make them into paths from whatever integer
-   -- they are.
-   for vertiIndex = 1, size do
-      for horizIndex = 1, size do
-         if board[vertiIndex][horizIndex] > 0 then
-            board[vertiIndex][horizIndex] = 1
-         end
-      end
-   end
 
    -- Look for a path with the desired complexity. Do this by sorting the paths
    -- by length, and choosing the first path that matches "#path <=
