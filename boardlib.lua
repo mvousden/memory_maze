@@ -24,13 +24,26 @@ function Board:create(size)
    return board
 end
 
+function Board:append_path_by_id(old, new)
+   -- Append path "old" to path "new", and clear path "old", where "old" and
+   -- "new" are path indeces.
+
+   -- Move each point in the old path to the new path.
+   for _, tilePosition in ipairs(self.paths[old]) do
+      self.set_path_at_point(tilePosition[1], tilePosition[2], new)
+      self.paths[new][#paths[new] + 1] = {tilePosition[1], tilePosition[2]}
+   end
+   self.paths[old] = {}
+end
+
 function Board:clear_map()
    -- Clears the board so that its map comprises only of holes. Also clears any
    -- paths for this board.
    --
    -- Pathing information is stored both as a Cartesian map (to allow us to
-   -- determine which paths are neighbouring), and as a list by IDs. Each value
-   -- in self.paths_map matches an index in self.paths.
+   -- determine which paths are neighbouring), and as a list by IDs, where each
+   -- entry is an unordered list of points in the Cartesian map. Each value in
+   -- self.paths_map matches an index in self.paths.
    --
    -- When a path is created, the seed tile position is added into the
    -- self.paths table, where paths are indexed by sequential integers. When a
@@ -178,17 +191,9 @@ function Board:populate_paths(complexityMaximum)
             self.set_point(candidatePos[1], candidatePos[2], 1)
 
             -- Join all the paths neighbouring this one together into a new
-            -- path, and change all of their cells in the board to this new
-            -- path ID. Empty the old path, so it won't be selected later when
-            -- we're looking for the most complex path, and to maintain the
-            -- atomic sequencing of the paths table.
+            -- path.
             for _, oldPathIndex in ipairs(pathsThatWouldBeJoined) do
-               for _, tilePosition in ipairs(self.paths[oldPathIndex]) do
-                  self.set_path_at_point(tilePosition[1], tilePosition[2],
-                                         newPathIndex)
-                  self.paths[newPathIndex][#paths[newPathIndex] + 1] = {tilePosition[1], tilePosition[2]}
-               end
-               paths[oldPathIndex] = {}
+               self.append_path_by_id(oldPathIndex, newPathIndex)
             end
          end
       end
