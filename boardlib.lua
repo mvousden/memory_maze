@@ -9,35 +9,99 @@
 
 require("math")
 
+-- Board class behaviour.
+Board = {}
+Board.__index = Board
 
-function generate_empty_board(size)
-   -- Returns a board populated with only holes.
-   board = {}
-   for vertiIndex = 1, size do
-      board[vertiIndex] = {}
-      for horizIndex = 1, size do
-         board[vertiIndex][horizIndex] = 0
-      end
-   end
-   return board
+function Board:create(size)
+   -- Creates a board of a given size, and initialises its map to only
+   -- holes. Does not define a start point.
+   local board = {}
+   setmetatable(board, Board)
+
+   board.size = size
+   board.clear_map()
 end
 
-function generate_board(size, complexityMax)
-   -- Returns a square board of a given size that requires no more than
-   -- complexityMax moves to solve.
+function Board:clear_map()
+   -- Clears the board so that its map comprises only of holes. Also clears any
+   -- paths for this board.
+   self.paths = {}
+   self.map = {}
+   for vertiIndex = 1, size do
+      self.map[vertiIndex] = {}
+      for horizIndex = 1, size do
+         self.map[vertiIndex][horizIndex] = 0
+      end
+   end
+end
 
-   -- Generate an empty board.
-   board = generate_empty_board(size)
+function Board:count_nonvoids_around_point(horizIndex, vertiIndex)
+   -- Returns the number of non-void tiles around a point described by a
+   -- horizontal and vertical position.
+   neighbourStates = self.get_neighbours_of_point(horizIndex, vertiIndex)
+   nonvoidCount = 0
+   for _, state in ipairs(neighbourStates) do
+      if state > 0 then
+         nonvoidCount += 1
+      end
+   end
+   return nonvoidCount
+end
 
-   -- Categorise each void that can potentially hold a path square.
+function Board:get_neighbours_of_point(horizIndex, vertiIndex)
+   -- Given a horizontal and a vertical position, returns the squares of the
+   -- map to its north, south, east, and west, in sequence.
+   --
+   -- If the square has no neighbour point in a given direction (i.e. it is on
+   -- an edge of the domain), nil is returned for that direction.
+   return {self.get_point(horizIndex, vertiIndex - 1),
+           self.get_point(horizIndex, vertiIndex + 1),
+           self.get_point(horizIndex + 1, vertiIndex),
+           self.get_point(horizIndex - 1, vertiIndex - 1)}
+end
+
+function Board:get_point(horizIndex, vertiIndex)
+   -- Given a horizontal and a vertical position, returns the square of the map
+   -- at that co-ordinate (see enum-comment at the top of this file).
+   return self.map[vertiIndex][horizIndex]
+end
+
+function Board:set_point(horizIndex, vertiIndex, value)
+   -- Given a horizontal and a vertical position, sets the square of the map
+   -- at that co-ordinate (see enum-comment at the top of this file).
+   self.map[vertiIndex][horizIndex] = value
+end
+
+function Board:populate_paths(complexityMaximum)
+   -- Populates the map of a board with paths.
+
+   -- This is achieved by:
+   --  1. Marking each void that is not on the edge as a candidate.
+
+   --  2. For each candidate void (chosen in a random sequence), determining
+   --     whether that void can be made to a path. It can be made to a path if:
+   --   - There are no walkable tiles neighbouring it (Manhattan)
+   --
+   --   - If there are walkable tiles neighbouring it, all of the following
+   --     must be true:
+   --     - Any super-path produced by adding the tile must have length less
+   --       than complexityMaximum.
+   --     - Two walkable tiles of the same path cannot be connected in this
+   --       way.
+   --  3. Setting all determined candidates to paths.
+
+   -- Determine candidate voids.
    candidateTiles = {}
    for vertiIndex = 2, size - 1 do
       for horizIndex = 2, size - 1 do
-         candidateTiles[#candidateTiles + 1] = {horizIndex, vertiIndex}
+         if self.get_point(horizIndex, vertiIndex) == 0 then
+            candidateTiles[#candidateTiles + 1] = {horizIndex, vertiIndex}
+         end
       end
    end
 
-   -- Store information about paths.
+   -- Create an object to store information about paths.
    --
    -- When a path is created, the seed tile position is added into this paths
    -- table, where paths are indexed by sequential integers. When a tile is
@@ -48,32 +112,18 @@ function generate_board(size, complexityMax)
    -- Keep choosing candidate voids at random, until there are no more
    -- candidate voids.
    while #candidateTiles > 0 do
-
       candidateTileIndex = math.random(#candidateTiles)
-
-      -- A void is a valid place to build a walkable tiles if all one the
-      -- following holds:
-      --
-      --  - There are no walkable tiles neighbouring it (Manhattan)
-      --
-      --  - If there are walkable tiles neighbouring it, all of the following
-      --    must be true:
-      --    - Any super-path produced by adding the tile must have length less
-      --      than complexityMax
-      --    - Two walkable tiles of the same path cannot be connected in this
-      --      way.
-      --
-      -- Start by determining the neighbours of the tile.
       candidatePos = candidateTiles[candidateTileIndex]
-
-      -- N, S, E, W
-      neighbourStatus = {board[candidatePos[2] - 1][candidatePos[1]],
-                         board[candidatePos[2] + 1][candidatePos[1]],
-                         board[candidatePos[2]][candidatePos[1] - 1],
-                         board[candidatePos[2]][candidatePos[1] + 1]}
 
       -- Move on if there is more than one tile surrounding this one from the
       -- same path.
+
+      -- <!> Oh no, the map mechanism is broken while this method is being
+      -- used, because we set the value of the points equal to the index of the
+      -- path they refer to! The solution to this may be, at each point, to
+      -- store a value for the enum, and a value dictating what path it belongs
+      -- to, if any. We then need a methods to access the map by its "enum
+      -- values", and to access the map by its "path values".
       if not nonzero_duplicate_in_table(neighbourStatus) then
 
          -- Determine the paths that this tile would join.
@@ -118,6 +168,22 @@ function generate_board(size, complexityMax)
                                             candidateTiles[#candidateTiles][2]}
       candidateTiles[#candidateTiles] = nil
    end
+
+
+end
+
+-- Helper for creating a board with specific properties.
+function generate_board(size, complexityMaximum)
+   -- Returns a square board of a given size that requires no more than
+   -- complexityMax moves to solve.
+
+   -- Generate an empty board.
+   board = Board:create(size)
+
+   -- Populate the board with paths.
+   board.populate_paths(complexityMaximum)
+
+   -- <!>
 
    -- For all squares on the board, make them into paths from whatever integer
    -- they are.
