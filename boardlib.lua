@@ -220,8 +220,8 @@ function generate_board(size, complexityMaximum)
    -- Look for a path with the desired complexity. Do this by sorting the paths
    -- by length, and choosing the first path that matches "#path <=
    -- complexityMax".
-   table.sort(paths, function(path1, path2) return #path1 > #path2 end)
-   for pathIndex, path in ipairs(paths) do
+   table.sort(board.paths, function(path1, path2) return #path1 > #path2 end)
+   for pathIndex, path in ipairs(board.paths) do
       if #path <= complexityMax then
          chosenPath = path
          break
@@ -231,10 +231,7 @@ function generate_board(size, complexityMaximum)
    -- Find members of the path that have only one neighbour.
    pathEnds = {}
    for _, position in ipairs(chosenPath) do
-      neighbourStatus = {board[position[2] - 1][position[1]],
-                         board[position[2] + 1][position[1]],
-                         board[position[2]][position[1] - 1],
-                         board[position[2]][position[1] + 1]}
+      neighbourStatus = board.get_neighbours_of_point(position[1], position[2])
       if not nonzero_duplicate_in_table(neighbourStatus) then
          pathEnds[#pathEnds + 1] = {position[1], position[2]}
       end
@@ -254,23 +251,20 @@ function generate_board(size, complexityMaximum)
                  return dist1["manhattan"] > dist2["manhattan"]
    end)
    startSquare, endSquare = unpack(distances[1]["ends"])
-   board[startSquare[2]][startSquare[1]] = 3
-   board[endSquare[2]][endSquare[1]] = 4
+   board.set_point(startSquare[1], startSquare[2], 3)
+   board.set_point(endSquare[1], endSquare[2], 4)
    board["start"] = {unpack(startSquare)}
 
    -- Put a light-off square on each square adjacent to the start.
-   neighbours = {{startSquare[1] - 1, startSquare[2]},
-      {startSquare[1] + 1, startSquare[2]},
-      {startSquare[1], startSquare[2] - 1},
-      {startSquare[1], startSquare[2] + 1}}
+   neighbours = board.get_neighbours_of_point(startSquare[1], startSquare[2])
 
    for _, position in pairs(neighbours) do
-      if board[position[2]][position[1]] == 1 then
-         board[position[2]][position[1]] = 2
+      if board.get_point(position[1], position[2]) == 1 then
+         board.set_point(position[1], position[2], 2)
       end
    end
 
-   return board
+   return {board.map, start=board.start}
 end
 
 function manhattan(position1, position2)
