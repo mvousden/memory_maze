@@ -49,11 +49,11 @@ function love.draw()
    end
 
    -- Draw squares
-   for vertiIndex = 1, #boards[boardIndex] do
+   for vertiIndex = 1, #boards[boardIndex].map do
       vertiPos = vertiIndex - 1
 
-      for horizIndex = 1, #boards[boardIndex][vertiIndex] do
-         squareType = boards[boardIndex][vertiIndex][horizIndex]
+      for horizIndex = 1, #boards[boardIndex].map[vertiIndex] do
+         squareType = boards[boardIndex].map[vertiIndex][horizIndex]
          horizPos = horizIndex - 1
 
          -- Draw outlines
@@ -120,7 +120,7 @@ function love.keypressed(key)
 
       -- If player is now on a hole, mark them as falling and turn the lights
       -- back on.
-      onType = boards[boardIndex][playerPos[2]][playerPos[1]]
+      onType = boards[boardIndex].map[playerPos[2]][playerPos[1]]
       if onType == 0 then
          playerFalling = true
 
@@ -146,8 +146,8 @@ function love.update(dt)
    -- Handle window resizing.
    screenWidth = love.graphics.getWidth()
    screenHeight = love.graphics.getHeight()
-   boxMinWidth = screenWidth / #boards[boardIndex]
-   boxMinHeight = screenHeight / #boards[boardIndex][1]
+   boxMinWidth = screenWidth / #boards[boardIndex].map
+   boxMinHeight = screenHeight / #boards[boardIndex].map[1]
    boxSize = math.min(boxMinWidth, boxMinHeight)
 
    -- Falling logic

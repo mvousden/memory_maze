@@ -20,7 +20,7 @@ function Board:create(size)
    setmetatable(board, Board)
 
    board.size = size
-   board.clear_map()
+   board:clear_map()
    return board
 end
 
@@ -30,8 +30,9 @@ function Board:append_path_by_id(old, new)
 
    -- Move each point in the old path to the new path.
    for _, tilePosition in ipairs(self.paths[old]) do
-      self.set_path_at_point(tilePosition[1], tilePosition[2], new)
-      self.paths[new][#paths[new] + 1] = {tilePosition[1], tilePosition[2]}
+      self:set_path_at_point(tilePosition[1], tilePosition[2], new)
+      self.paths[new][#self.paths[new] + 1] = {tilePosition[1],
+                                               tilePosition[2]}
    end
    self.paths[old] = {}
 end
@@ -53,10 +54,10 @@ function Board:clear_map()
    self.paths_map = {}
 
    self.map = {}
-   for vertiIndex = 1, size do
+   for vertiIndex = 1, self.size do
       self.map[vertiIndex] = {}
       self.paths_map[vertiIndex] = {}
-      for horizIndex = 1, size do
+      for horizIndex = 1, self.size do
          self.map[vertiIndex][horizIndex] = 0
          self.paths_map[vertiIndex][horizIndex] = 0
       end
@@ -66,11 +67,11 @@ end
 function Board:count_nonvoids_around_point(horizIndex, vertiIndex)
    -- Returns the number of non-void tiles around a point described by a
    -- horizontal and vertical position.
-   neighbourStates = self.get_neighbours_of_point(horizIndex, vertiIndex)
+   neighbourStates = self:get_neighbours_of_point(horizIndex, vertiIndex)
    nonvoidCount = 0
    for _, state in ipairs(neighbourStates) do
       if state > 0 then
-         nonvoidCount += 1
+         nonvoidCount = nonvoidCount + 1
       end
    end
    return nonvoidCount
@@ -82,10 +83,10 @@ function Board:get_neighbours_of_point(horizIndex, vertiIndex)
    --
    -- If the square has no neighbour point in a given direction (i.e. it is on
    -- an edge of the domain), nil is returned for that direction.
-   return {self.get_point(horizIndex, vertiIndex - 1),
-           self.get_point(horizIndex, vertiIndex + 1),
-           self.get_point(horizIndex + 1, vertiIndex),
-           self.get_point(horizIndex - 1, vertiIndex - 1)}
+   return {self:get_point(horizIndex, vertiIndex - 1),
+           self:get_point(horizIndex, vertiIndex + 1),
+           self:get_point(horizIndex + 1, vertiIndex),
+           self:get_point(horizIndex - 1, vertiIndex - 1)}
 end
 
 function Board:get_neighbouring_paths_of_point(horizIndex, vertiIndex)
@@ -94,10 +95,10 @@ function Board:get_neighbouring_paths_of_point(horizIndex, vertiIndex)
    --
    -- If the square has no neighbour point in a given direction (i.e. it is on
    -- an edge of the domain), nil is returned for that direction.
-   return {self.get_path_at_point(horizIndex, vertiIndex - 1),
-           self.get_path_at_point(horizIndex, vertiIndex + 1),
-           self.get_path_at_point(horizIndex + 1, vertiIndex),
-           self.get_path_at_point(horizIndex - 1, vertiIndex - 1)}
+   return {self:get_path_at_point(horizIndex, vertiIndex - 1),
+           self:get_path_at_point(horizIndex, vertiIndex + 1),
+           self:get_path_at_point(horizIndex + 1, vertiIndex),
+           self:get_path_at_point(horizIndex - 1, vertiIndex - 1)}
 end
 
 function Board:get_path_at_point(horizIndex, vertiIndex)
@@ -144,9 +145,9 @@ function Board:populate_paths(complexityMaximum)
 
    -- Determine candidate voids.
    candidateTiles = {}
-   for vertiIndex = 2, size - 1 do
-      for horizIndex = 2, size - 1 do
-         if self.get_point(horizIndex, vertiIndex) == 0 then
+   for vertiIndex = 2, self.size - 1 do
+      for horizIndex = 2, self.size - 1 do
+         if self:get_point(horizIndex, vertiIndex) == 0 then
             candidateTiles[#candidateTiles + 1] = {horizIndex, vertiIndex}
          end
       end
@@ -160,8 +161,8 @@ function Board:populate_paths(complexityMaximum)
 
       -- Move on if there is more than one tile surrounding this one from the
       -- same path.
-      neighbourPaths = board.get_neighbouring_paths_of_point(candidatePos[1],
-                                                             candidatePos[2])
+      neighbourPaths = self:get_neighbouring_paths_of_point(candidatePos[1],
+                                                            candidatePos[2])
       if not nonzero_duplicate_in_table(neighbourPaths) then
 
          -- Determine the paths that this tile would join.
@@ -176,24 +177,24 @@ function Board:populate_paths(complexityMaximum)
          -- lengths of the paths it would combine.
          resultingComplexity = 0
          for _, pathIndex in ipairs(pathsThatWouldBeJoined) do
-            resultingComplexity = resultingComplexity + #paths[pathIndex]
+            resultingComplexity = resultingComplexity + #self.paths[pathIndex]
          end
 
          -- Only add the tile if it doesn't increase the maximum complexity
          -- beyond the specified maximum.
-         if resultingComplexity <= complexityMax then
+         if resultingComplexity <= complexityMaximum then
 
             -- Create a new path with this tile as a seed.
-            newPathIndex = #paths + 1
+            newPathIndex = #self.paths + 1
             self.paths[newPathIndex] = {{candidatePos[1], candidatePos[2]}}
-            self.set_path_at_point(candidatePos[1], candidatePos[2],
+            self:set_path_at_point(candidatePos[1], candidatePos[2],
                                    newPathIndex)
-            self.set_point(candidatePos[1], candidatePos[2], 1)
+            self:set_point(candidatePos[1], candidatePos[2], 1)
 
             -- Join all the paths neighbouring this one together into a new
             -- path.
             for _, oldPathIndex in ipairs(pathsThatWouldBeJoined) do
-               self.append_path_by_id(oldPathIndex, newPathIndex)
+               self:append_path_by_id(oldPathIndex, newPathIndex)
             end
          end
       end
@@ -209,20 +210,20 @@ end
 -- Helper for creating a board with specific properties.
 function generate_board(size, complexityMaximum)
    -- Returns a square board of a given size that requires no more than
-   -- complexityMax moves to solve.
+   -- complexityMaximum moves to solve.
 
    -- Generate an empty board.
    board = Board:create(size)
 
    -- Populate the board with paths.
-   board.populate_paths(complexityMaximum)
+   board:populate_paths(complexityMaximum)
 
    -- Look for a path with the desired complexity. Do this by sorting the paths
-   -- by length, and choosing the first path that matches "#path <=
-   -- complexityMax".
+   -- by length, and choosing the first path that doesn't exceed the maximum
+   -- complexity.
    table.sort(board.paths, function(path1, path2) return #path1 > #path2 end)
    for pathIndex, path in ipairs(board.paths) do
-      if #path <= complexityMax then
+      if #path <= complexityMaximum then
          chosenPath = path
          break
       end
@@ -231,7 +232,7 @@ function generate_board(size, complexityMaximum)
    -- Find members of the path that have only one neighbour.
    pathEnds = {}
    for _, position in ipairs(chosenPath) do
-      neighbourStatus = board.get_neighbours_of_point(position[1], position[2])
+      neighbourStatus = board:get_neighbours_of_point(position[1], position[2])
       if not nonzero_duplicate_in_table(neighbourStatus) then
          pathEnds[#pathEnds + 1] = {position[1], position[2]}
       end
@@ -251,20 +252,24 @@ function generate_board(size, complexityMaximum)
                  return dist1["manhattan"] > dist2["manhattan"]
    end)
    startSquare, endSquare = unpack(distances[1]["ends"])
-   board.set_point(startSquare[1], startSquare[2], 3)
-   board.set_point(endSquare[1], endSquare[2], 4)
+   board:set_point(startSquare[1], startSquare[2], 3)
+   board:set_point(endSquare[1], endSquare[2], 4)
    board["start"] = {unpack(startSquare)}
 
    -- Put a light-off square on each square adjacent to the start.
-   neighbours = board.get_neighbours_of_point(startSquare[1], startSquare[2])
+   -- neighbours = board:get_neighbours_of_point(startSquare[1], startSquare[2])
+   neighbours = {{startSquare[1], startSquare[2] - 1},
+      {startSquare[1], startSquare[2] + 1},
+      {startSquare[1] + 1, startSquare[2]},
+      {startSquare[1] - 1, startSquare[2]}}
 
    for _, position in pairs(neighbours) do
-      if board.get_point(position[1], position[2]) == 1 then
-         board.set_point(position[1], position[2], 2)
+      if board:get_point(position[1], position[2]) == 1 then
+         board:set_point(position[1], position[2], 2)
       end
    end
 
-   return {board.map, start=board.start}
+   return board
 end
 
 function manhattan(position1, position2)
@@ -291,46 +296,47 @@ end
 -- Define some "tutorial" boards.
 defaultBoards = {
    {
-      {0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 1, 1, 1, 0, 3, 1, 1, 0},
-      {0, 1, 3, 1, 0, 1, 0, 1, 0},
-      {0, 1, 1, 1, 1, 2, 0, 4, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0},
+      map={{0, 0, 0, 0, 0, 0, 0, 0, 0},
+           {0, 1, 1, 1, 0, 3, 1, 1, 0},
+           {0, 1, 3, 1, 0, 1, 0, 1, 0},
+           {0, 1, 1, 1, 1, 2, 0, 4, 0},
+           {0, 0, 0, 0, 0, 0, 0, 0, 0}},
       start={3, 3}
    },
    {
-      {0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 1, 0, 0, 0, 0, 0},
-      {0, 1, 3, 1, 0, 1, 4, 0},
-      {0, 0, 1, 0, 0, 1, 0, 0},
-      {0, 0, 2, 0, 0, 1, 2, 0},
-      {0, 0, 1, 1, 0, 0, 1, 0},
-      {0, 0, 0, 1, 1, 3, 1, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0},
+      map={{0, 0, 0, 0, 0, 0, 0, 0},
+           {0, 0, 1, 0, 0, 0, 0, 0},
+           {0, 1, 3, 1, 0, 1, 4, 0},
+           {0, 0, 1, 0, 0, 1, 0, 0},
+           {0, 0, 2, 0, 0, 1, 2, 0},
+           {0, 0, 1, 1, 0, 0, 1, 0},
+           {0, 0, 0, 1, 1, 3, 1, 0},
+           {0, 0, 0, 0, 0, 0, 0, 0}},
       start={3, 3},
    },
    {
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0},
-      {0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0},
-      {0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0},
-      {0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 4, 0},
-      {0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0},
-      {0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0},
-      {0, 0, 1, 1, 2, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0},
-      {0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0},
-      {0, 1, 3, 1, 1, 2, 1, 0, 1, 0, 1, 1, 0, 1, 0},
-      {0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      map={{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+         {0, 0, 0, 0, 0, 3, 1, 2, 0, 0, 0, 0, 0, 0, 0},
+         {0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0},
+         {0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0},
+         {0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0},
+         {0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0},
+         {0, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 4, 0},
+         {0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+         {0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0},
+         {0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0},
+         {0, 0, 1, 1, 2, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0},
+         {0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0},
+         {0, 1, 3, 1, 1, 2, 1, 0, 1, 0, 1, 1, 0, 1, 0},
+         {0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0},
+         {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
       start={3, 13}
    }
 }
 
 -- Add more boards of increasing difficulty
-for boardID = #defaultBoards + 1, 100 do
+--for boardID = #defaultBoards + 1, 100 do
+for boardID = 1, 100 do
    defaultBoards[boardID] = generate_board(10 + boardID, 10 + boardID * 1.5)
 end
 
