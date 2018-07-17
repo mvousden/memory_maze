@@ -172,7 +172,7 @@ function Board:populate_paths(complexityMaximum)
 
             -- Create a new path with this tile as a seed.
             newPathIndex = #paths + 1
-            paths[newPathIndex] = {{candidatePos[1], candidatePos[2]}}
+            self.paths[newPathIndex] = {{candidatePos[1], candidatePos[2]}}
             self.set_path_at_point(candidatePos[1], candidatePos[2],
                                    newPathIndex)
             self.set_point(candidatePos[1], candidatePos[2], 1)
