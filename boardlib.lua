@@ -86,7 +86,7 @@ function Board:get_neighbours_of_point(horizIndex, vertiIndex)
    return {self:get_point(horizIndex, vertiIndex - 1),
            self:get_point(horizIndex, vertiIndex + 1),
            self:get_point(horizIndex + 1, vertiIndex),
-           self:get_point(horizIndex - 1, vertiIndex - 1)}
+           self:get_point(horizIndex - 1, vertiIndex)}
 end
 
 function Board:get_neighbouring_paths_of_point(horizIndex, vertiIndex)
@@ -98,7 +98,7 @@ function Board:get_neighbouring_paths_of_point(horizIndex, vertiIndex)
    return {self:get_path_at_point(horizIndex, vertiIndex - 1),
            self:get_path_at_point(horizIndex, vertiIndex + 1),
            self:get_path_at_point(horizIndex + 1, vertiIndex),
-           self:get_path_at_point(horizIndex - 1, vertiIndex - 1)}
+           self:get_path_at_point(horizIndex - 1, vertiIndex)}
 end
 
 function Board:get_path_at_point(horizIndex, vertiIndex)
