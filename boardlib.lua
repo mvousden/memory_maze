@@ -336,7 +336,8 @@ defaultBoards = {
 
 -- Add more boards of increasing difficulty
 for boardID = #defaultBoards + 1, 100 do
-   defaultBoards[boardID] = generate_board(10 + boardID, 10 + boardID * 1.5)
+--for boardID = 1, 100 do
+   defaultBoards[boardID] = generate_board(15, 10 + boardID * 1.5)
 end
 
 return {defaultBoards=defaultBoards, generate_board=generate_board}
